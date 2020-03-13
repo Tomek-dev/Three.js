@@ -158,10 +158,14 @@ for( var _key in models ){
 	}
   //LIGHT
   const color = 0xFFFFFF;
-  const intensity = 1;
-  const light = new THREE.DirectionalLight(color, intensity);
-  light.position.set(2, 2, 4);
-  scene.add(light);
+  const intensity1 = 1;
+  const intensity2 = 0.3;
+  const light1 = new THREE.DirectionalLight(color, intensity1);
+  light1.position.set(2, 2, 4);
+  scene.add(light1);
+  const light2 = new THREE.DirectionalLight(color, intensity2);
+  light2.position.set(0, -8.5, 2);
+  scene.add(light2);
 
   //FLOOR
   const floorGeometry = new THREE.PlaneGeometry(10, 10, 10, 10); //set floor size
@@ -208,8 +212,8 @@ function onResourcesLoaded(){
 	meshes["house"] = models.house.mesh.clone();
 	
 	// Reposition individual meshes, then add meshes to scene
-	meshes["house"].position.set(-5, 0, 4);
-	scene.add(meshes["house"]);
+	meshes["house"].position.set(0, -8.3, 1);
+	scene.add(meshes["house"]);2
 } 
 
 function animate(){
