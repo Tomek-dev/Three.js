@@ -1,5 +1,5 @@
 import {PointerLockControls} from 'https://threejsfundamentals.org/threejs/resources/threejs/r113/examples/jsm/controls/PointerLockControls.js';
-var camera, scene, controls, renderer, canvas, loadingManager, clock, mesh;
+var camera, scene, controls, renderer, canvas, loadingManager, clock, mesh, raycaster;
 var velocity = new THREE.Vector3();
 var direction = new THREE.Vector3();
 var objects = [];
@@ -11,6 +11,8 @@ var prevTime = performance.now();
 var USE_WIREFRAME = false;
 var loadingManager = null;
 var RESOURCES_LOADED = false;
+var collisionForward = false, collisionBackward = false,
+    collisionLeft = false, collisionRight = false,
 
 var models = {
 	house: {
@@ -78,22 +80,22 @@ function init() {
      switch ( event.keyCode ) {
         case 38: // up
         case 87: // w
-        	moveForward = true;
+            if(collisionForward === false) moveForward = true;
         	break;
 
         case 37: // left
         case 65: // a
-        	moveLeft = true;
+        	if(collisionLeft === false) moveLeft = true;
         	break;
 
         case 40: // down
         case 83: // s
-        	moveBackward = true;
+        	if(collisionBackward === false) moveBackward = true;
         	break;
 
         case 39: // right
         case 68: // d
-        	moveRight = true;
+        	if(collisionRight === false) moveRight = true;
         	break;
     	}
     };
@@ -124,6 +126,9 @@ function init() {
 
   document.addEventListener( 'keydown', onKeyDown, false );
   document.addEventListener( 'keyup', onKeyUp, false );
+  
+  raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3( 0, - 1, 0 ), 0, 10);
+  
   //loading models
 for( var _key in models ){
 		(function(key){
@@ -179,6 +184,7 @@ for( var _key in models ){
   const cubeMaterial = new THREE.MeshPhongMaterial({color: 0x44aa88}); //
   const cube = new THREE.Mesh(cubeGeometry, cubeMaterial); // create mesh
   cube.position.set(1, 1, 1);
+  cube.doubleSided = true;
   objects.push(cube);
   scene.add(cube);
 
@@ -219,23 +225,42 @@ function onResourcesLoaded(){
 function animate(){
     requestAnimationFrame(animate);
     if(controls.isLocked === true){
-
         var time = performance.now();
         let delta = (time - prevTime) / 1000; //calculate delta
+
+        raycaster.ray.origin.copy(controls.getObject().position);
+        raycaster.ray.direction.copy(controls.getObject().position);
+        raycaster.ray.direction.y -= 2;
 
         velocity.x -= velocity.x * 10.0 * delta;
         velocity.z -= velocity.z * 10.0 * delta;
 
-        //calculate direction
         direction.z = Number( moveForward ) - Number( moveBackward );
         direction.x = Number( moveRight ) - Number( moveLeft );
         direction.normalize();
 
-        if(moveForward || moveBackward) velocity.z -= direction.z * 50.0 * delta;
-        if(moveLeft || moveRight) velocity.x -= direction.x * 50.0 * delta;
-
+        if(moveForward || moveBackward){
+            raycaster.ray.origin.z += direction.z * 0.5;
+            raycaster.ray.direction.z += direction.z * 0.5;
+            velocity.z -= direction.z * 50.0 * delta;
+        }
+        if(moveLeft || moveRight){
+            raycaster.ray.origin.x += direction.x * 0.5;
+            raycaster.ray.direction.x += direction.x * 0.5;
+            velocity.x -= direction.x * 50.0 * delta;
+        }
+        var intersections = raycaster.intersectObjects(objects, true);
+        console.log(intersections.length > 0);
+        console.log(raycaster.ray.direction);
+        console.log(controls.getObject().position);
+        if(intersections.length > 0){
+            collisionForward = (moveForward === true ? true : false);
+            collisionBackward = (moveBackward === true ? true : false);
+            collisionRight = (moveLeft === true ? true : false);
+            collisionLeft = (moveRight === true ? true : false);
+        }
         controls.moveRight(-velocity.x * delta);
-        controls.moveForward(- velocity.z * delta);
+        controls.moveForward(-velocity.z * delta);
 
         if(controls.getObject().position.y < 2){
             velocity.y = 0;
